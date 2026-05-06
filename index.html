@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WTR Lab Novel Finder</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #1a1208; --parchment: #f5ecd7; --parchment-dark: #e8d9b8;
+  --gold: #c9953a; --gold-light: #e8b86d; --gold-dark: #8a6420;
+  --red: #8b2020; --muted: #7a6a50; --white: #fdfaf4;
+  --shadow: rgba(26,18,8,0.18);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--ink); font-family: 'Crimson Pro', Georgia, serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 0 0 60px; }
+.page { width: 100%; max-width: 820px; padding: 0 20px; position: relative; z-index: 1; }
+header { text-align: center; padding: 48px 0 32px; border-bottom: 1px solid rgba(201,149,58,0.3); margin-bottom: 28px; }
+.logo-line { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 8px; }
+.logo-ornament { color: var(--gold); font-size: 20px; opacity: 0.7; }
+h1 { font-family: 'Cinzel', serif; font-size: clamp(22px,5vw,34px); color: var(--gold-light); letter-spacing: 0.08em; font-weight: 700; }
+.subtitle { font-size: 15px; color: var(--muted); font-style: italic; margin-top: 6px; }
+.card { background: var(--parchment); border-radius: 4px; padding: 24px 28px; margin-bottom: 16px; border: 1px solid var(--parchment-dark); box-shadow: 0 4px 32px var(--shadow); position: relative; overflow: hidden; }
+.card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+.card-title { font-family: 'Cinzel', serif; font-size: 12px; color: var(--gold-dark); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+.card-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--gold-dark), transparent); opacity: 0.4; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+@media(max-width:520px){ .form-row { grid-template-columns: 1fr; } }
+.field { display: flex; flex-direction: column; gap: 5px; }
+label { font-family: 'Cinzel', serif; font-size: 10px; color: var(--gold-dark); letter-spacing: 0.12em; text-transform: uppercase; }
+select, input[type=number], input[type=text] { background: var(--white); border: 1px solid var(--parchment-dark); border-radius: 3px; padding: 9px 12px; font-family: 'Crimson Pro', serif; font-size: 15px; color: var(--ink); outline: none; transition: border-color 0.2s; appearance: none; -webkit-appearance: none; width: 100%; }
+select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a6420' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; cursor: pointer; }
+select:focus, input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,149,58,0.15); }
+
+/* Tags grid */
+.tags-grid { display: flex; flex-wrap: wrap; gap: 7px; }
+.tag-btn { padding: 5px 12px; border: 1px solid var(--parchment-dark); border-radius: 20px; background: var(--white); font-family: 'Crimson Pro', serif; font-size: 13px; color: var(--muted); cursor: pointer; transition: all 0.2s; user-select: none; }
+.tag-btn:hover { border-color: var(--gold); color: var(--gold-dark); }
+.tag-btn.active { background: var(--gold); border-color: var(--gold-dark); color: var(--white); font-weight: 600; }
+.tag-section-label { font-family: 'Cinzel', serif; font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin: 12px 0 6px; display: block; }
+
+/* Sources */
+.sources-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; }
+@media(max-width:480px){ .sources-grid { grid-template-columns: 1fr; } }
+.source-toggle { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: var(--white); border: 1px solid var(--parchment-dark); border-radius: 3px; cursor: pointer; transition: all 0.2s; user-select: none; }
+.source-toggle.active { border-color: var(--gold); background: rgba(201,149,58,0.07); }
+.source-toggle input { display: none; }
+.toggle-box { width: 15px; height: 15px; border: 1.5px solid var(--parchment-dark); border-radius: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
+.source-toggle.active .toggle-box { background: var(--gold); border-color: var(--gold); }
+.toggle-check { color: white; font-size: 10px; display: none; font-weight: bold; }
+.source-toggle.active .toggle-check { display: block; }
+.source-info { flex: 1; min-width: 0; }
+.source-name { font-family: 'Cinzel', serif; font-size: 11px; color: var(--ink); letter-spacing: 0.05em; }
+.source-tag { font-size: 10px; padding: 1px 5px; border-radius: 2px; font-style: italic; margin-left: 5px; }
+.tag-fast { color: #2d7a2d; background: rgba(45,122,45,0.1); }
+.tag-slow { color: var(--red); background: rgba(139,32,32,0.1); }
+.source-url { font-size: 11px; color: var(--muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Server banner */
+.server-banner { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-radius: 3px; font-size: 13px; margin-bottom: 16px; font-style: italic; }
+.server-banner.ok { background: rgba(45,122,45,0.12); color: #2d7a2d; border: 1px solid rgba(45,122,45,0.25); }
+.server-banner.warn { background: rgba(201,149,58,0.12); color: var(--gold-dark); border: 1px solid rgba(201,149,58,0.3); }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot.green { background: #2d7a2d; box-shadow: 0 0 6px rgba(45,122,45,0.6); }
+.dot.amber { background: var(--gold); box-shadow: 0 0 6px rgba(201,149,58,0.6); }
+
+/* Run button */
+.run-btn { width: 100%; padding: 13px 24px; background: linear-gradient(135deg, var(--gold-dark), var(--gold)); border: none; border-radius: 3px; font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 0.12em; color: var(--white); cursor: pointer; transition: all 0.25s; text-transform: uppercase; box-shadow: 0 2px 12px rgba(138,100,32,0.35); margin-top: 8px; }
+.run-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(138,100,32,0.45); }
+.run-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Progress */
+.progress-card { display: none; }
+.progress-card.visible { display: block; }
+.progress-log { background: var(--ink); border-radius: 3px; padding: 14px 16px; font-family: 'Courier New', monospace; font-size: 12px; color: var(--gold-light); min-height: 100px; max-height: 220px; overflow-y: auto; line-height: 1.7; }
+.log-line { opacity: 0; animation: fadeIn 0.3s forwards; }
+.log-line.ok { color: #7ec87e; }
+.log-line.warn { color: #e8b86d; }
+.log-line.err { color: #e87e7e; }
+.log-line.dim { color: var(--muted); }
+@keyframes fadeIn { to { opacity: 1; } }
+.progress-bar-wrap { height: 4px; background: rgba(201,149,58,0.15); border-radius: 2px; margin-top: 12px; overflow: hidden; }
+.progress-bar { height: 100%; background: linear-gradient(90deg, var(--gold-dark), var(--gold-light)); border-radius: 2px; width: 0%; transition: width 0.4s ease; }
+
+/* Results */
+.results-card { display: none; }
+.results-card.visible { display: block; }
+.results-summary { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 18px; }
+@media(max-width:480px){ .results-summary { grid-template-columns: 1fr; } }
+.stat-box { background: var(--white); border: 1px solid var(--parchment-dark); border-radius: 3px; padding: 12px 14px; text-align: center; }
+.stat-num { font-family: 'Cinzel', serif; font-size: 26px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+.stat-num.green { color: #2d7a2d; }
+.stat-num.red { color: var(--red); }
+.stat-num.amber { color: var(--gold-dark); }
+.stat-label { font-size: 11px; color: var(--muted); font-style: italic; }
+.filter-tabs { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid var(--parchment-dark); }
+.tab-btn { padding: 6px 12px; font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; color: var(--muted); transition: all 0.2s; margin-bottom: -1px; }
+.tab-btn.active { color: var(--gold-dark); border-bottom-color: var(--gold); }
+.novel-list { display: flex; flex-direction: column; gap: 7px; max-height: 480px; overflow-y: auto; }
+.novel-row { background: var(--white); border: 1px solid var(--parchment-dark); border-radius: 3px; padding: 10px 14px; display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start; animation: fadeIn 0.25s forwards; opacity: 0; }
+.novel-title-text { font-size: 15px; color: var(--ink); font-weight: 600; line-height: 1.3; margin-bottom: 2px; }
+.novel-meta { font-size: 12px; color: var(--muted); font-style: italic; }
+.novel-meta span { margin-right: 10px; }
+.novel-url { font-size: 11px; color: var(--gold-dark); word-break: break-all; margin-top: 3px; font-family: 'Courier New', monospace; }
+.status-badge { font-size: 11px; padding: 3px 8px; border-radius: 2px; white-space: nowrap; font-style: italic; flex-shrink: 0; }
+.badge-new { background: rgba(45,122,45,0.1); color: #2d7a2d; }
+.badge-duplicate { background: rgba(139,32,32,0.1); color: var(--red); }
+.badge-unverified { background: rgba(201,149,58,0.12); color: var(--gold-dark); }
+.download-btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; background: var(--ink); color: var(--gold-light); border: 1px solid rgba(201,149,58,0.4); border-radius: 3px; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; margin-top: 14px; text-decoration: none; }
+.download-btn:hover { background: rgba(201,149,58,0.1); border-color: var(--gold); }
+.empty-state { text-align: center; padding: 28px; color: var(--muted); font-style: italic; }
+footer { text-align: center; font-size: 12px; color: rgba(122,106,80,0.5); margin-top: 28px; font-style: italic; }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--parchment-dark); }
+::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 3px; }
+.manual-textarea { width: 100%; height: 100px; background: var(--white); border: 1px solid var(--parchment-dark); border-radius: 3px; padding: 9px 12px; font-family: 'Courier New', monospace; font-size: 12px; color: var(--ink); outline: none; resize: vertical; }
+.manual-textarea:focus { border-color: var(--gold); }
+.hint { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 6px; }
+
+/* WTR Match enhancements */
+.badge-probable { background: rgba(201,149,58,0.15); color: var(--gold-dark); border: 1px solid var(--gold); }
+.conf-badge { font-size: 10px; margin-left: 6px; opacity: 0.8; }
+.wtr-match { font-size: 12px; color: var(--muted); margin-top: 4px; font-style: italic; }
+.novel-info { flex: 1; min-width: 0; }
+.novel-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.wtr-search-btn { font-size: 11px; padding: 3px 8px; background: var(--parchment); border: 1px solid var(--gold); border-radius: 3px; color: var(--gold-dark); text-decoration: none; white-space: nowrap; }
+.wtr-search-btn:hover { background: var(--gold); color: white; }
+.wtr-confirm-btn { font-size: 10px; color: var(--muted); text-decoration: none; }
+.wtr-confirm-btn:hover { color: var(--gold-dark); }
+.novel-url a { color: var(--muted); text-decoration: none; font-size: 12px; }
+.novel-url a:hover { color: var(--gold-dark); }
+</style>
+</head>
+<body>
+<div class="page">
+<header>
+  <div class="logo-line"><span class="logo-ornament">✦</span><h1>WTR Lab Novel Finder</h1><span class="logo-ornament">✦</span></div>
+  <p class="subtitle">Discover novels from source sites · Filter duplicates · Export for submission</p>
+</header>
+
+<div class="server-banner warn" id="serverBanner">
+  <div class="dot amber" id="serverDot"></div>
+  <span id="serverMsg">Checking connection to backend server...</span>
+</div>
+
+<!-- Search Criteria -->
+<div class="card">
+  <div class="card-title">Search Criteria</div>
+  <div class="form-row">
+    <div class="field">
+      <label>Genre</label>
+      <select id="genreSelect">
+        <optgroup label="─ Main Genres ─">
+          <option value="fantasy">Fantasy / Xuanhuan</option>
+          <option value="xianxia">Xianxia / Cultivation</option>
+          <option value="romance">Romance / Yanqing</option>
+          <option value="action">Action / Wuxia</option>
+          <option value="mystery">Mystery / Xuanyi</option>
+          <option value="sci-fi">Sci-Fi / Kehuan</option>
+          <option value="horror">Horror / Kongbu</option>
+          <option value="history">Historical / Lishi</option>
+          <option value="urban">Urban / Contemporary</option>
+          <option value="game">Game / Virtual Reality</option>
+          <option value="sports">Sports / Competition</option>
+          <option value="military">Military / War</option>
+          <option value="comedy">Comedy / Slice of Life</option>
+          <option value="danmei">Danmei / BL</option>
+          <option value="other">Other / All Genres</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="field">
+      <label>Minimum Chapters</label>
+      <input type="number" id="minChapters" value="100" min="1" max="10000">
+    </div>
+  </div>
+</div>
+
+<!-- Tags / Keywords -->
+<div class="card">
+  <div class="card-title">Tags &amp; Keywords</div>
+  <p class="hint" style="margin-bottom:10px">Select tags to filter novels by theme, or type a custom keyword below</p>
+
+  <span class="tag-section-label">Popular Series / Universes</span>
+  <div class="tags-grid" id="seriesTags">
+    <button class="tag-btn" data-tag="douluo">Douluo Dalu</button>
+    <button class="tag-btn" data-tag="coiling dragon">Coiling Dragon</button>
+    <button class="tag-btn" data-tag="naruto">Naruto</button>
+    <button class="tag-btn" data-tag="one piece">One Piece</button>
+    <button class="tag-btn" data-tag="dragon ball">Dragon Ball</button>
+    <button class="tag-btn" data-tag="bleach">Bleach</button>
+    <button class="tag-btn" data-tag="marvel">Marvel</button>
+    <button class="tag-btn" data-tag="dc comics">DC Comics</button>
+    <button class="tag-btn" data-tag="harry potter">Harry Potter</button>
+    <button class="tag-btn" data-tag="pokemon">Pokémon</button>
+    <button class="tag-btn" data-tag="digimon">Digimon</button>
+    <button class="tag-btn" data-tag="sword art online">SAO</button>
+    <button class="tag-btn" data-tag="attack on titan">Attack on Titan</button>
+    <button class="tag-btn" data-tag="demon slayer">Demon Slayer</button>
+    <button class="tag-btn" data-tag="jujutsu kaisen">Jujutsu Kaisen</button>
+    <button class="tag-btn" data-tag="re zero">Re:Zero</button>
+    <button class="tag-btn" data-tag="overlord">Overlord</button>
+    <button class="tag-btn" data-tag="honkai">Honkai</button>
+    <button class="tag-btn" data-tag="genshin">Genshin</button>
+  </div>
+
+  <span class="tag-section-label">Tropes &amp; Themes</span>
+  <div class="tags-grid" id="tropeTags">
+    <button class="tag-btn" data-tag="system">System</button>
+    <button class="tag-btn" data-tag="transmigration">Transmigration</button>
+    <button class="tag-btn" data-tag="reincarnation">Reincarnation</button>
+    <button class="tag-btn" data-tag="rebirth">Rebirth</button>
+    <button class="tag-btn" data-tag="overpowered">Overpowered MC</button>
+    <button class="tag-btn" data-tag="harem">Harem</button>
+    <button class="tag-btn" data-tag="villain">Villain Protagonist</button>
+    <button class="tag-btn" data-tag="time travel">Time Travel</button>
+    <button class="tag-btn" data-tag="apocalypse">Apocalypse</button>
+    <button class="tag-btn" data-tag="zombie">Zombie</button>
+    <button class="tag-btn" data-tag="gate">Gate / Portal</button>
+    <button class="tag-btn" data-tag="awakening">Awakening</button>
+    <button class="tag-btn" data-tag="farming">Farming / Slice of Life</button>
+    <button class="tag-btn" data-tag="alchemy">Alchemy / Crafting</button>
+    <button class="tag-btn" data-tag="beast taming">Beast Taming</button>
+    <button class="tag-btn" data-tag="mecha">Mecha</button>
+    <button class="tag-btn" data-tag="saintess">Saintess</button>
+    <button class="tag-btn" data-tag="regression">Regression</button>
+  </div>
+
+  <span class="tag-section-label">Custom Keyword</span>
+  <input type="text" id="customKeyword" placeholder="e.g. sword god, soul land, celestial..." style="margin-bottom:4px">
+  <p class="hint">Leave all tags empty to search by genre only</p>
+</div>
+
+<!-- Sources -->
+<div class="card">
+  <div class="card-title">Sources</div>
+  <div class="sources-grid">
+    <label class="source-toggle active"><input type="checkbox" checked value="fanqi"><div class="toggle-box"><span class="toggle-check">✓</span></div><div class="source-info"><div class="source-name">Fanqi Novel <span class="source-tag tag-fast">fast</span></div><div class="source-url">fanqienovel.com</div></div></label>
+    <label class="source-toggle active"><input type="checkbox" checked value="69shu"><div class="toggle-box"><span class="toggle-check">✓</span></div><div class="source-info"><div class="source-name">69 Shuba <span class="source-tag tag-fast">fast</span></div><div class="source-url">69shuba.com</div></div></label>
+    <label class="source-toggle active"><input type="checkbox" checked value="twkan"><div class="toggle-box"><span class="toggle-check">✓</span></div><div class="source-info"><div class="source-name">TWKan <span class="source-tag tag-fast">fast</span></div><div class="source-url">twkan.com</div></div></label>
+    <label class="source-toggle active"><input type="checkbox" checked value="uuread"><div class="toggle-box"><span class="toggle-check">✓</span></div><div class="source-info"><div class="source-name">UURead <span class="source-tag tag-slow">slow</span></div><div class="source-url">uuread.tw</div></div></label>
+  </div>
+</div>
+
+<!-- Manual URL check -->
+<div class="card">
+  <div class="card-title">Manual URL Check</div>
+  <p class="hint" style="margin-bottom:10px">Paste novel URLs (one per line) to check them against WTR Lab directly</p>
+  <textarea class="manual-textarea" id="manualUrls" placeholder="https://www.69shuba.com/book/12345.htm&#10;https://twkan.com/book/9486.html&#10;https://www.uuread.tw/1666265"></textarea>
+  <p class="hint">Leave empty to use auto-search above</p>
+</div>
+
+<button class="run-btn" id="runBtn" onclick="startSearch()">✦ Begin Search ✦</button>
+
+<!-- Progress -->
+<div class="card progress-card" id="progressCard" style="margin-top:16px">
+  <div class="card-title">Progress</div>
+  <div class="progress-log" id="progressLog"></div>
+  <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+</div>
+
+<!-- Results -->
+<div class="card results-card" id="resultsCard" style="margin-top:16px">
+  <div class="card-title">Results</div>
+  <div class="results-summary">
+    <div class="stat-box"><div class="stat-num green" id="statNew">0</div><div class="stat-label">New — safe to submit</div></div>
+    <div class="stat-box"><div class="stat-num red" id="statDupe">0</div><div class="stat-label">Duplicates — skipped</div></div>
+    <div class="stat-box"><div class="stat-num amber" id="statUnver">0</div><div class="stat-label">Unverified — review</div></div>
+  </div>
+  <div class="filter-tabs">
+    <button class="tab-btn active" onclick="filterResults('all',this)">All</button>
+    <button class="tab-btn" onclick="filterResults('new',this)">New</button>
+    <button class="tab-btn" onclick="filterResults('duplicate',this)">Duplicates</button>
+        <button class="tab-btn" onclick="filterResults('probable',this)">⚠ Probable (<span id="statProb">0</span>)</button>
+    <button class="tab-btn" onclick="filterResults('unverified',this)">Unverified</button>
+  </div>
+  <div class="novel-list" id="novelList"></div>
+  <a class="download-btn" href="#" onclick="downloadCSV(event)">⬇ Download CSV</a>
+</div>
+
+<footer>For use with wtr-lab.com/en/profile/request-serie</footer>
+</div>
+
+<script>
+const API = '';
+let currentJobId = null, pollInterval = null, allNovels = [], lastLogCount = 0, currentFilter = 'all';
+let activeTags = new Set();
+
+// Server check
+async function checkServer() {
+  try {
+    await fetch(API + '/api/search', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({genre:'__ping__',min_chapters:1,sources:[]}), signal: AbortSignal.timeout(3000) });
+    setBannerOk();
+  } catch { setBannerWarn(); }
+}
+function setBannerOk() { const b=document.getElementById('serverBanner'); b.className='server-banner ok'; document.getElementById('serverDot').className='dot green'; document.getElementById('serverMsg').textContent='Backend server connected — ready to search'; }
+function setBannerWarn() { const b=document.getElementById('serverBanner'); b.className='server-banner warn'; document.getElementById('serverDot').className='dot amber'; document.getElementById('serverMsg').textContent='Backend not running — start server.py first: python3 server.py'; }
+checkServer();
+
+// Source toggles
+document.querySelectorAll('.source-toggle').forEach(l => l.addEventListener('click', () => { const cb = l.querySelector('input'); cb.checked = !cb.checked; l.classList.toggle('active', cb.checked); }));
+
+// Tag toggles
+document.querySelectorAll('.tag-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    btn.classList.toggle('active');
+    const tag = btn.dataset.tag;
+    if (activeTags.has(tag)) activeTags.delete(tag);
+    else activeTags.add(tag);
+  });
+});
+
+// Logging
+function appendLogs(logs) {
+  const el = document.getElementById('progressLog');
+  for (let i = lastLogCount; i < logs.length; i++) {
+    const {msg, level} = logs[i];
+    const line = document.createElement('div');
+    line.className = 'log-line ' + (level || 'info');
+    line.textContent = msg;
+    el.appendChild(line);
+  }
+  lastLogCount = logs.length;
+  el.scrollTop = el.scrollHeight;
+}
+
+// Search
+async function startSearch() {
+  const genre = document.getElementById('genreSelect').value;
+  const minChapters = parseInt(document.getElementById('minChapters').value) || 100;
+  const sources = [...document.querySelectorAll('.source-toggle input:checked')].map(el => el.value);
+  const manualText = document.getElementById('manualUrls').value.trim();
+  const manualUrls = manualText ? manualText.split('\n').filter(u => u.trim()) : null;
+  const customKeyword = document.getElementById('customKeyword').value.trim();
+
+  // Collect all active tags + custom keyword
+  const tags = [...activeTags];
+  if (customKeyword) tags.push(customKeyword);
+
+  if (!manualUrls && sources.length === 0) { alert('Please select at least one source.'); return; }
+
+  allNovels = []; lastLogCount = 0;
+  document.getElementById('progressLog').innerHTML = '';
+  document.getElementById('progressBar').style.width = '0%';
+  document.getElementById('novelList').innerHTML = '';
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('progressCard').classList.add('visible');
+  document.getElementById('resultsCard').classList.remove('visible');
+
+  try {
+    const res = await fetch(API + '/api/search', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ genre, min_chapters: minChapters, sources, manual_urls: manualUrls, tags })
+    });
+    if (!res.ok) throw new Error('Server error');
+    const {job_id} = await res.json();
+    currentJobId = job_id;
+    clearInterval(pollInterval);
+    pollInterval = setInterval(() => pollJob(job_id), 800);
+  } catch(e) {
+    appendLogs([{msg: '❌ Could not connect to backend. Is server.py running?', level: 'err'}]);
+    document.getElementById('runBtn').disabled = false;
+  }
+}
+
+async function pollJob(jobId) {
+  try {
+    const res = await fetch(`${API}/api/job/${jobId}`);
+    const data = await res.json();
+    appendLogs(data.logs || []);
+    document.getElementById('progressBar').style.width = (data.progress || 0) + '%';
+    if (data.results && data.results.length > allNovels.length) {
+      allNovels = data.results; updateStats(); renderNovels(currentFilter);
+      document.getElementById('resultsCard').classList.add('visible');
+    }
+    if (data.status === 'done' || data.status === 'error') {
+      clearInterval(pollInterval);
+      document.getElementById('runBtn').disabled = false;
+      allNovels = data.results || []; updateStats(); renderNovels(currentFilter);
+    }
+  } catch(e) { clearInterval(pollInterval); document.getElementById('runBtn').disabled = false; }
+}
+
+function updateStats() {
+  document.getElementById('statNew').textContent   = allNovels.filter(n => n.wtr_status==='new').length;
+  document.getElementById('statDupe').textContent  = allNovels.filter(n => n.wtr_status==='duplicate').length;
+  document.getElementById('statUnver').textContent = allNovels.filter(n => n.wtr_status==='unverified').length;
+}
+
+function renderNovels(filter) {
+  currentFilter = filter;
+  const list = document.getElementById('novelList');
+  list.innerHTML = '';
+  const filtered = filter === 'all' ? allNovels : allNovels.filter(n => n.wtr_status === filter);
+  if (filtered.length === 0) { list.innerHTML = '<div class="empty-state">No novels in this category yet.</div>'; return; }
+  filtered.forEach((novel, i) => {
+    const row = document.createElement('div');
+    row.className = 'novel-row';
+    row.style.animationDelay = Math.min(i*25,300)+'ms';
+    const bcMap = {new:'badge-new',duplicate:'badge-duplicate',probable:'badge-probable',unverified:'badge-unverified'};
+    const btMap = {new:'✓ New',duplicate:'✗ On WTR',probable:'⚠ Probable',unverified:'? Uncheck'};
+    const bc = bcMap[novel.wtr_status]||'badge-unverified';
+    const bt = btMap[novel.wtr_status]||'?';
+    const conf = novel.wtr_confidence ? `<span class="conf-badge">${novel.wtr_confidence}% match</span>` : '';
+    const enTitle = novel.wtr_en_title ? `<div class="wtr-match">WTR: ${novel.wtr_en_title}</div>` : '';
+    const wtrBtn = novel.wtr_search_url ? `<a href="${novel.wtr_search_url}" target="_blank" class="wtr-search-btn" title="Search on WTR Lab">🔍 WTR</a>` : '';
+    const wtrConfirm = novel.wtr_url ? `<a href="${novel.wtr_url}" target="_blank" class="wtr-confirm-btn">View on WTR ↗</a>` : '';
+    row.innerHTML = `<div class="novel-info"><div class="novel-title-text">${novel.title}</div><div class="novel-meta"><span>by ${novel.author}</span><span>${(novel.chapters||0).toLocaleString()} ch.</span><span>${novel.source}</span></div>${enTitle}<div class="novel-url"><a href="${novel.url}" target="_blank">${novel.url}</a></div></div><div class="novel-actions"><div class="status-badge ${bc}">${bt}${conf}</div>${wtrBtn}${wtrConfirm}</div>`;
+    list.appendChild(row);
+  });
+}
+
+function filterResults(filter, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderNovels(filter);
+}
+
+function downloadCSV(e) {
+  e.preventDefault();
+  if (currentJobId) window.location.href = `${API}/api/export/${currentJobId}`;
+}
+</script>
+</body>
+</html>
