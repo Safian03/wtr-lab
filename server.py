@@ -295,6 +295,54 @@ def api_export(jid):
  rows=['title,author,chapters,url,source,wtr_status']+[','.join(f'"{str(n.get(f,"")).replace(chr(34),chr(39))}"'for f in['title','author','chapters','url','source','wtr_status'])for n in j['results']if n.get('wtr_status')!='duplicate']
  return Response('\n'.join(rows),mimetype='text/csv',headers={'Content-Disposition':'attachment; filename=wtrlab_results.csv'})
 
+
+
+# ── Chapter count fetching ──────────────────────────────────────────
+import cloudscraper as _cs
+from concurrent.futures import ThreadPoolExecutor as _TPE
+
+_chapter_cache = {}
+_scraper = _cs.create_scraper()
+
+def fetch_uuread_chapter_count(url):
+    if url in _chapter_cache:
+        return _chapter_cache[url]
+    try:
+        import re as _re
+        r = _scraper.get(url, timeout=10)
+        soup = BeautifulSoup(r.text, 'html.parser')
+        m = _re.search(r'共\s*(\d+)\s*[章话節]', r.text)
+        if m:
+            count = int(m.group(1))
+            _chapter_cache[url] = count
+            return count
+        for sel in ['#chapterList li','.chapter-list li','.volume-item li','ul.list-chapter li','.chapters li']:
+            items = soup.select(sel)
+            if len(items) > 5:
+                _chapter_cache[url] = len(items)
+                return len(items)
+        for el in soup.find_all(string=_re.compile(r'\d+\s*章')):
+            m2 = _re.search(r'(\d+)\s*章', el)
+            if m2:
+                count = int(m2.group(1))
+                if count > 5:
+                    _chapter_cache[url] = count
+                    return count
+    except Exception:
+        pass
+    _chapter_cache[url] = 0
+    return 0
+
+@app.route('/api/chapters', methods=['POST'])
+def api_chapters():
+    urls = request.json.get('urls', [])
+    def _fetch(url):
+        return {'url': url, 'chapters': fetch_uuread_chapter_count(url)}
+    with _TPE(max_workers=10) as ex:
+        results = list(ex.map(_fetch, urls))
+    return jsonify(results)
+
 if __name__=='__main__':
  print('Server running at: http://localhost:5000')
  app.run(debug=False,port=5000)
+

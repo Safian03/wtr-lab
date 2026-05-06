@@ -371,13 +371,13 @@ async function pollJob(jobId) {
     appendLogs(data.logs || []);
     document.getElementById('progressBar').style.width = (data.progress || 0) + '%';
     if (data.results && data.results.length > allNovels.length) {
-      allNovels = data.results; updateStats(); renderNovels(currentFilter);
+      const _nr1=data.results; _nr1.forEach(n=>{const _e=allNovels.find(e=>e.url===n.url); if(_e&&_e.chapters!==9999)n.chapters=_e.chapters;}); allNovels=_nr1; updateStats(); renderNovels(currentFilter);
       document.getElementById('resultsCard').classList.add('visible');
     }
     if (data.status === 'done' || data.status === 'error') {
       clearInterval(pollInterval);
       document.getElementById('runBtn').disabled = false;
-      allNovels = data.results || []; updateStats(); renderNovels(currentFilter);
+      const _nr2=data.results||[]; _nr2.forEach(n=>{const _e=allNovels.find(e=>e.url===n.url); if(_e&&_e.chapters!==9999)n.chapters=_e.chapters;}); allNovels=_nr2; updateStats(); renderNovels(currentFilter);
     }
   } catch(e) { clearInterval(pollInterval); document.getElementById('runBtn').disabled = false; }
 }
@@ -395,7 +395,7 @@ function renderNovels(filter) {
   const filtered = filter === 'all' ? allNovels : allNovels.filter(n => n.wtr_status === filter);
   if (filtered.length === 0) { list.innerHTML = '<div class="empty-state">No novels in this category yet.</div>'; return; }
   filtered.forEach((novel, i) => {
-    const row = document.createElement('div');
+    const row = document.createElement('div'); row.classList.add('novel-row');
     row.className = 'novel-row';
     row.style.animationDelay = Math.min(i*25,300)+'ms';
     const bcMap = {new:'badge-new',duplicate:'badge-duplicate',probable:'badge-probable',unverified:'badge-unverified'};
@@ -406,9 +406,10 @@ function renderNovels(filter) {
     const enTitle = novel.wtr_en_title ? `<div class="wtr-match">WTR: ${novel.wtr_en_title}</div>` : '';
     const wtrBtn = novel.wtr_search_url ? `<a href="${novel.wtr_search_url}" target="_blank" class="wtr-search-btn" title="Search on WTR Lab">🔍 WTR</a>` : '';
     const wtrConfirm = novel.wtr_url ? `<a href="${novel.wtr_url}" target="_blank" class="wtr-confirm-btn">View on WTR ↗</a>` : '';
-    row.innerHTML = `<div class="novel-info"><div class="novel-title-text">${novel.title}</div><div class="novel-meta"><span>by ${novel.author}</span><span>${(novel.chapters||0).toLocaleString()} ch.</span><span>${novel.source}</span></div>${enTitle}<div class="novel-url"><a href="${novel.url}" target="_blank">${novel.url}</a></div></div><div class="novel-actions"><div class="status-badge ${bc}">${bt}${conf}</div>${wtrBtn}${wtrConfirm}</div>`;
+    row.innerHTML = `<div class="novel-info"><div class="novel-title-text">${novel.title}</div><div class="novel-meta"><span>by ${novel.author}</span><span><span class="chap-count" data-url="${novel.url}">${(novel.chapters||0).toLocaleString()}</span> ch.</span><span>${novel.source}</span></div>${enTitle}<div class="novel-url"><a href="${novel.url}" target="_blank">${novel.url}</a></div></div><div class="novel-actions"><div class="status-badge ${bc}">${bt}${conf}</div>${wtrBtn}${wtrConfirm}</div>`;
     list.appendChild(row);
   });
+  fetchChapterCounts();
 }
 
 function filterResults(filter, btn) {
@@ -420,6 +421,39 @@ function filterResults(filter, btn) {
 function downloadCSV(e) {
   e.preventDefault();
   if (currentJobId) window.location.href = `${API}/api/export/${currentJobId}`;
+}
+
+async function fetchChapterCounts() {
+  const uuread = allNovels.filter(n => n.url && n.url.includes('uuread'));
+  if (!uuread.length) return;
+  const urls = uuread.map(n => n.url);
+  try {
+    const res = await fetch(API + '/api/chapters', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({urls})
+    });
+    const data = await res.json();
+    data.forEach(({url, chapters}) => {
+      // Update allNovels
+      const novel = allNovels.find(n => n.url === url);
+      if (novel) novel.chapters = chapters;
+      // Update DOM live
+      document.querySelectorAll(".chap-count").forEach(el => { if(el.dataset.url === url) el.textContent = chapters.toLocaleString(); });
+    });
+    // Re-filter hidden cards based on updated chapter counts
+    const minCh = parseInt(document.getElementById('minChapters')?.value || '0');
+    document.querySelectorAll('.novel-row').forEach(row => {
+      const url = row.querySelector('.chap-count')?.dataset.url;
+      const novel = allNovels.find(n => n.url === url);
+      if (!novel) return;
+      if (novel.chapters > 0 && novel.chapters < minCh) {
+        row.style.display = 'none';
+      } else if (novel.chapters >= minCh) {
+        row.style.display = '';
+      }
+    });
+  } catch(e) { console.warn('Chapter fetch failed', e); }
 }
 </script>
 </body>
