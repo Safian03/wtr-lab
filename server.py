@@ -262,7 +262,7 @@ def run_job(jid,genre,mc,sources,manual_urls=None,max_novels=500):
    if wstatus=='duplicate':dc+=1
    elif wstatus=='new':nc+=1
    else:uc+=1
-   job['results'].append(nv)
+   if nv.get('url') not in job['seen_urls']:job['seen_urls'].add(nv.get('url',''));job['results'].append(nv)
    if job.get('cancelled'):job['status']='cancelled';log('Search cancelled.','warn');return
    if len(job['results'])>=max_novels:log(f'Reached limit of {max_novels} novels.','ok');break
    job['progress']=int(52+((i+1)/len(uniq))*46)
@@ -280,7 +280,7 @@ def index():return send_from_directory('.','index.html')
 @app.route('/api/search',methods=['POST'])
 def api_search():
  d=request.json;jid=str(uuid.uuid4())
- jobs[jid]={'status':'running','progress':0,'logs':[],'results':[],'cancelled':False}
+ jobs[jid]={'status':'running','progress':0,'logs':[],'results':[],'cancelled':False,'seen_urls':set()}
  manual=d.get('manual_urls',None)
  threading.Thread(target=run_job,args=(jid,d.get('genre','fantasy'),int(d.get('min_chapters',100)),d.get('sources',['fanqi','69shu','twkan','uuread']),manual,int(d.get('max_novels',500))),daemon=True).start()
  return jsonify({'job_id':jid})
