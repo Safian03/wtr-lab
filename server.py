@@ -91,6 +91,12 @@ def pw_scrape(url,selector_fn,log,wait=2):
   log(f'Browser error: {e}','warn')
  return results
 
+
+GENRE_URLS = {
+  'fanqi': {'fantasy':'1','romance':'2','scifi':'3','history':'4','action':'5'},
+  '69shu': {'fantasy':'1','romance':'2','scifi':'3','history':'4','action':'5'},
+  'twkan': {'fantasy':'1','romance':'2','scifi':'3','history':'4','action':'5'},
+}
 def parse_fanqi(html,mc):
  soup=BeautifulSoup(html,'html.parser')
  res=[]
