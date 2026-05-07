@@ -233,7 +233,7 @@ def check_manual_urls(urls,log):
   res.append({'title':url,'author':'Unknown','chapters':0,'url':url,'source':src})
  return res
 
-def run_job(jid,genre,mc,sources,manual_urls=None):
+def run_job(jid,genre,mc,sources,manual_urls=None,max_novels=500):
  job=jobs[jid]
  def log(m,lv='info'):job['logs'].append({'msg':m,'level':lv})
  try:
@@ -263,6 +263,8 @@ def run_job(jid,genre,mc,sources,manual_urls=None):
    elif wstatus=='new':nc+=1
    else:uc+=1
    job['results'].append(nv)
+   if job.get('cancelled'):job['status']='cancelled';log('Search cancelled.','warn');return
+   if len(job['results'])>=max_novels:log(f'Reached limit of {max_novels} novels.','ok');break
    job['progress']=int(52+((i+1)/len(uniq))*46)
    if (i+1)%5==0 or i==len(uniq)-1:log(f'[{i+1}/{len(uniq)}] {nc} new {dc} dupes {uc} unverified','dim')
    time.sleep(1.5)
@@ -278,9 +280,9 @@ def index():return send_from_directory('.','index.html')
 @app.route('/api/search',methods=['POST'])
 def api_search():
  d=request.json;jid=str(uuid.uuid4())
- jobs[jid]={'status':'running','progress':0,'logs':[],'results':[]}
+ jobs[jid]={'status':'running','progress':0,'logs':[],'results':[],'cancelled':False}
  manual=d.get('manual_urls',None)
- threading.Thread(target=run_job,args=(jid,d.get('genre','fantasy'),int(d.get('min_chapters',100)),d.get('sources',['fanqi','69shu','twkan','uuread']),manual),daemon=True).start()
+ threading.Thread(target=run_job,args=(jid,d.get('genre','fantasy'),int(d.get('min_chapters',100)),d.get('sources',['fanqi','69shu','twkan','uuread']),manual,int(d.get('max_novels',500))),daemon=True).start()
  return jsonify({'job_id':jid})
 
 @app.route('/api/job/<jid>')
@@ -295,6 +297,15 @@ def api_export(jid):
  rows=['title,author,chapters,url,source,wtr_status']+[','.join(f'"{str(n.get(f,"")).replace(chr(34),chr(39))}"'for f in['title','author','chapters','url','source','wtr_status'])for n in j['results']if n.get('wtr_status')!='duplicate']
  return Response('\n'.join(rows),mimetype='text/csv',headers={'Content-Disposition':'attachment; filename=wtrlab_results.csv'})
 
+
+
+@app.route('/api/cancel/<jid>', methods=['POST'])
+def api_cancel(jid):
+    j = jobs.get(jid)
+    if not j: return jsonify({'error':'Not found'}), 404
+    j['cancelled'] = True
+    j['status'] = 'cancelled'
+    return jsonify({'cancelled': True})
 
 
 # ── Chapter count fetching ──────────────────────────────────────────

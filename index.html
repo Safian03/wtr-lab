@@ -254,7 +254,7 @@ footer { text-align: center; font-size: 12px; color: rgba(122,106,80,0.5); margi
 
 <!-- Progress -->
 <div class="card progress-card" id="progressCard" style="margin-top:16px">
-  <div class="card-title">Progress</div>
+  <div class="card-title">Progress <button id="cancelBtn" onclick="cancelSearch()" style="display:none;float:right;background:#8b1a1a;color:#f5e6c8;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px;letter-spacing:0.05em">✕ Cancel</button></div>
   <div class="progress-log" id="progressLog"></div>
   <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
 </div>
@@ -345,13 +345,13 @@ async function startSearch() {
   document.getElementById('novelList').innerHTML = '';
   document.getElementById('runBtn').disabled = true;
   document.getElementById('progressCard').classList.add('visible');
-  document.getElementById('resultsCard').classList.remove('visible');
+  document.getElementById('resultsCard').classList.remove('visible'); document.getElementById('cancelBtn').style.display='inline-block';
 
   try {
     const res = await fetch(API + '/api/search', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ genre, min_chapters: minChapters, sources, manual_urls: manualUrls, tags })
+      body: JSON.stringify({ genre, min_chapters: minChapters, sources, manual_urls: manualUrls, tags, max_novels: parseInt(document.getElementById('maxNovels')?.value||500) })
     });
     if (!res.ok) throw new Error('Server error');
     const {job_id} = await res.json();
@@ -409,7 +409,7 @@ function renderNovels(filter) {
     row.innerHTML = `<div class="novel-info"><div class="novel-title-text">${novel.title}</div><div class="novel-meta"><span>by ${novel.author}</span><span><span class="chap-count" data-url="${novel.url}">${(novel.chapters||0).toLocaleString()}</span> ch.</span><span>${novel.source}</span></div>${enTitle}<div class="novel-url"><a href="${novel.url}" target="_blank">${novel.url}</a></div></div><div class="novel-actions"><div class="status-badge ${bc}">${bt}${conf}</div>${wtrBtn}${wtrConfirm}</div>`;
     list.appendChild(row);
   });
-  fetchChapterCounts();
+  fetchChapterCounts(); retryMissingChapters();
 }
 
 function filterResults(filter, btn) {
@@ -454,6 +454,43 @@ async function fetchChapterCounts() {
       }
     });
   } catch(e) { console.warn('Chapter fetch failed', e); }
+}
+
+async function cancelSearch() {
+  if (!currentJobId) return;
+  await fetch(API + '/api/cancel/' + currentJobId, {method:'POST'});
+  clearInterval(pollInterval); pollInterval = null;
+  document.getElementById('cancelBtn').style.display = 'none';
+  document.getElementById('progressCard').classList.remove('visible');
+}
+
+async function retryMissingChapters() {
+  const missing = allNovels.filter(n => n.url && n.url.includes('uuread') && (n.chapters === 9999 || n.chapters === 0));
+  if (!missing.length) return;
+  setTimeout(async () => {
+    try {
+      const res = await fetch(API + '/api/chapters', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({urls: missing.map(n=>n.url)})
+      });
+      const data = await res.json();
+      data.forEach(({url, chapters}) => {
+        if (chapters > 0) {
+          const novel = allNovels.find(n => n.url === url);
+          if (novel) novel.chapters = chapters;
+          document.querySelectorAll('.chap-count').forEach(el => {
+            if (el.dataset.url === url) el.textContent = chapters.toLocaleString();
+          });
+        }
+      });
+      const minCh = parseInt(document.getElementById('minChapters')?.value || '0');
+      document.querySelectorAll('.novel-row').forEach(row => {
+        const url = row.querySelector('.chap-count')?.dataset.url;
+        const novel = allNovels.find(n => n.url === url);
+        if (novel && novel.chapters > 0 && novel.chapters < minCh) row.style.display = 'none';
+      });
+    } catch(e) {}
+  }, 15000);
 }
 </script>
 </body>
