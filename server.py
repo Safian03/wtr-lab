@@ -146,14 +146,14 @@ def parse_twkan(html,mc):
  soup=BeautifulSoup(html,'html.parser')
  res=[]
  for li in soup.select('#article_list_content li,ul#article_list_content li'):
-  a=li.select_one('h3 a[href*="/book/"],a[href*="/book/"]')
+  a=li.select_one("h3 a:not(.imgbox)")
   if not a:continue
-  href=a.get('href','')
-  url=href if href.startswith('http') else 'https://twkan.com'+href
-  title_el=li.select_one('h3.ellipsis_1,h3')
-  title=title_el.get_text(strip=True) if title_el else a.get_text(strip=True)
-  author_el=li.select_one('h4')
-  author=author_el.get_text(strip=True) if author_el else 'Unknown'
+  href_el=li.select_one("a.imgbox");href=href_el.get("href","") if href_el else a.get("href","")
+  url=href_el.get("href","") if href_el else "";url=url if url.startswith("http") else "https://twkan.com"+url
+  title_el=li.select_one("h3 a,h3")
+  title=a.get_text(strip=True)
+  author_el=li.select_one("div.labelbox label a")
+  author=author_el.get_text(strip=True) if author_el else "Unknown"
   chap_el=li.select_one('[class*=chap],[class*=count],.zs')
   chaps=pc(chap_el.get_text()) if chap_el else 999
   if title and chaps>=mc:
