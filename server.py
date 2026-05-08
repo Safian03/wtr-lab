@@ -106,8 +106,7 @@ def parse_fanqi(html,mc):
   title=__import__("re").sub(r"[-]","",a.get_text(strip=True))
   href=a.get('href','')
   url=href if href.startswith('http') else 'https://fanqienovel.com'+href
-  author_el=item.select_one('[class*=author],.book-item-author')
-  author=author_el.get_text(strip=True).replace('Author:','').strip() if author_el else 'Unknown'
+  import re as _ra;_am=_ra.search(r"作者.{0,2}(.{1,20}?)(?:[··]|\s*已|\s*$)",item.get_text());author=_ra.sub(r"[-]","",_am.group(1).strip()) if _am else "Unknown"
   chap_el=item.select_one('[class*=count],[class*=chap],[class*=serial]')
   chaps=pc(chap_el.get_text()) if chap_el else 999
   if title and chaps>=mc:
