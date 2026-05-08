@@ -103,7 +103,7 @@ def parse_fanqi(html,mc):
  for item in soup.select('div.stack-book-item,div.book-item-text'):
   a=item.select_one('a.book-item-title,a[href*="/page/"]')
   if not a:continue
-  title=a.get_text(strip=True)
+  title=__import__("re").sub(r"[-]","",a.get_text(strip=True))
   href=a.get('href','')
   url=href if href.startswith('http') else 'https://fanqienovel.com'+href
   author_el=item.select_one('[class*=author],.book-item-author')
