@@ -405,7 +405,7 @@ function renderNovels(filter) {
     const bc = bcMap[novel.wtr_status]||'badge-unverified';
     const bt = btMap[novel.wtr_status]||'?';
     const conf = novel.wtr_confidence ? `<span class="conf-badge">${novel.wtr_confidence}% match</span>` : '';
-    const enTitle = novel.wtr_en_title ? `<div class="wtr-match">WTR: ${novel.wtr_en_title}</div>` : '';
+    const enTitle = novel.wtr_en_title ? `<div class="wtr-match">WTR: ${novel.wtr_en_title}</div>` : (novel.title_en ? `<div class="novel-meta">EN: ${novel.title_en}</div>` : '');
     const wtrBtn = novel.wtr_search_url ? `<a href="${novel.wtr_search_url}" target="_blank" class="wtr-search-btn" title="Search on WTR Lab">🔍 WTR</a>` : '';
     const wtrConfirm = novel.wtr_url ? `<a href="${novel.wtr_url}" target="_blank" class="wtr-confirm-btn">View on WTR ↗</a>` : '';
     row.innerHTML = `<div class="novel-info"><div class="novel-title-text">${novel.title}</div><div class="novel-meta"><span>by ${novel.author}</span><span><span class="chap-count" data-url="${novel.url}">${(novel.chapters||0).toLocaleString()}</span> ch.</span><span>${novel.source}</span></div>${enTitle}<div class="novel-url"><a href="${novel.url}" target="_blank">${novel.url}</a></div></div><div class="novel-actions"><div class="status-badge ${bc}">${bt}${conf}</div>${wtrBtn}${wtrConfirm}</div>`;

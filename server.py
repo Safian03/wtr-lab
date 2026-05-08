@@ -92,6 +92,17 @@ def pw_scrape(url,selector_fn,log,wait=2):
  return results
 
 
+
+def gtranslate(text, src='zh-TW'):
+  if not text: return ''
+  try:
+    import requests as _rq
+    r = _rq.get('https://translate.googleapis.com/translate_a/single',
+      params={'client':'gtx','sl':src,'tl':'en','dt':'t','q':text},
+      timeout=5)
+    return r.json()[0][0][0]
+  except: return ''
+
 GENRE_URLS = {
   'fanqi': {'fantasy':'1','romance':'2','scifi':'3','history':'4','action':'5'},
   '69shu': {'fantasy':'1','romance':'2','scifi':'3','history':'4','action':'5'},
@@ -110,7 +121,7 @@ def parse_fanqi(html,mc):
   chap_el=item.select_one('[class*=count],[class*=chap],[class*=serial]')
   chaps=pc(chap_el.get_text()) if chap_el else 999
   if title and chaps>=mc:
-   res.append({'title':title,'author':author,'chapters':chaps,'url':url,'source':'fanqienovel.com'})
+   res.append({'title':title,'author':author,'chapters':chaps,'url':url,'source':'fanqienovel.com','title_en':gtranslate(title,'zh-CN')})
  return res
 
 def parse_69shu(html,mc):
@@ -128,7 +139,7 @@ def parse_69shu(html,mc):
   chap_el=li.select_one('[class*=chap],[class*=count],.zs')
   chaps=pc(chap_el.get_text()) if chap_el else 999
   if title and chaps>=mc:
-   res.append({'title':title,'author':author,'chapters':chaps,'url':url,'source':'69shuba.com'})
+   res.append({'title':title,'author':author,'chapters':chaps,'url':url,'source':'69shuba.com','title_en':gtranslate(title,'zh-CN')})
  return res
 
 def parse_twkan(html,mc):
@@ -146,7 +157,7 @@ def parse_twkan(html,mc):
   chap_el=li.select_one('[class*=chap],[class*=count],.zs')
   chaps=pc(chap_el.get_text()) if chap_el else 999
   if title and chaps>=mc:
-   res.append({'title':title,'author':author,'chapters':chaps,'url':url,'source':'twkan.com'})
+   res.append({'title':title,'author':author,'chapters':chaps,'url':url,'source':'twkan.com','title_en':gtranslate(title,'zh-TW')})
  return res
 
 def parse_uuread(html,mc):
