@@ -121,7 +121,7 @@ def parse_fanqi(html,mc):
   chap_el=item.select_one('[class*=count],[class*=chap],[class*=serial]')
   chaps=pc(chap_el.get_text()) if chap_el else 999
   if title and chaps>=mc:
-   res.append({'title':title,'author':author,'chapters':chaps,'url':url,'source':'fanqienovel.com','title_en':gtranslate(title,'zh-CN')})
+   res.append({'title':title,'author':author,'chapters':chaps,'url':url,'source':'fanqienovel.com'})
  return res
 
 def parse_69shu(html,mc):
@@ -139,7 +139,7 @@ def parse_69shu(html,mc):
   chap_el=li.select_one('[class*=chap],[class*=count],.zs')
   chaps=pc(chap_el.get_text()) if chap_el else 999
   if title and chaps>=mc:
-   res.append({'title':title,'author':author,'chapters':chaps,'url':url,'source':'69shuba.com','title_en':gtranslate(title,'zh-CN')})
+   res.append({'title':title,'author':author,'chapters':chaps,'url':url,'source':'69shuba.com'})
  return res
 
 def parse_twkan(html,mc):
@@ -157,7 +157,7 @@ def parse_twkan(html,mc):
   chap_el=li.select_one('[class*=chap],[class*=count],.zs')
   chaps=pc(chap_el.get_text()) if chap_el else 999
   if title and chaps>=mc:
-   res.append({'title':title,'author':author,'chapters':chaps,'url':url,'source':'twkan.com','title_en':gtranslate(title,'zh-TW')})
+   res.append({'title':title,'author':author,'chapters':chaps,'url':url,'source':'twkan.com'})
  return res
 
 def parse_uuread(html,mc):
@@ -264,6 +264,12 @@ def run_job(jid,genre,mc,sources,manual_urls=None,max_novels=500):
   for n in all_r:
    if n['url'] not in seen:seen.add(n['url']);uniq.append(n)
   log(f'Dedup: {len(all_r)}->{len(uniq)} unique')
+  def _tr(n):
+    src='zh-TW' if n.get('source','') in ['uuread.tw','twkan.com'] else 'zh-CN'
+    n['title_en']=gtranslate(n['title'],src)
+    return n
+  log(f'Translating {len(uniq)} titles...')
+  with _TPE(max_workers=20) as _tex:uniq[:]=list(_tex.map(_tr,uniq))
   job['progress']=52
   log(f'Checking {len(uniq)} against WTR Lab...')
   nc=dc=uc=0
