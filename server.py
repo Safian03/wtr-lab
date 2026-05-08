@@ -106,7 +106,7 @@ def gtranslate(text, src='zh-TW'):
 GENRE_URLS = {
   'fanqi': {'fantasy':'1','romance':'2','scifi':'3','history':'4','action':'5'},
   '69shu': {'fantasy':'1','romance':'2','scifi':'3','history':'4','action':'5'},
-  'twkan': {'fantasy':'1','romance':'2','scifi':'3','history':'4','action':'5'},
+  'twkan': {'fantasy':'1','wuxia':'2','modern':'3','history':'4','scifi':'5','esports':'6','horror':'7','romance':'8'},
 }
 def parse_fanqi(html,mc):
  soup=BeautifulSoup(html,'html.parser')
@@ -127,8 +127,8 @@ def parse_fanqi(html,mc):
 def parse_69shu(html,mc):
  soup=BeautifulSoup(html,'html.parser')
  res=[]
- for li in soup.select('ul li'):
-  a=li.select_one('a[href*="/book/"]')
+ for li in soup.select('#article_list_content li,ul#article_list_content li'):
+  a=li.select_one('h3 a[href*="/book/"],a[href*="/book/"]')
   if not a:continue
   href=a.get('href','')
   url=href if href.startswith('http') else 'https://www.69shuba.com'+href
@@ -145,8 +145,8 @@ def parse_69shu(html,mc):
 def parse_twkan(html,mc):
  soup=BeautifulSoup(html,'html.parser')
  res=[]
- for li in soup.select('ul li'):
-  a=li.select_one('a[href*="/book/"]')
+ for li in soup.select('#article_list_content li,ul#article_list_content li'):
+  a=li.select_one('h3 a[href*="/book/"],a[href*="/book/"]')
   if not a:continue
   href=a.get('href','')
   url=href if href.startswith('http') else 'https://twkan.com'+href
@@ -205,7 +205,7 @@ def scrape_auto(src,genre,mc,log):
   elif src=='twkan':
    gid=GENRE_URLS['twkan'].get(genre,'1')
    for p in range(1,4):
-    url=f'https://twkan.com/sort.htm?c={gid}&page={p}'
+    url=f'https://twkan.com/novels/class/{gid}_{p}.html'
     novels=pw_scrape(url,lambda html,mc=mc:parse_twkan(html,mc),log)
     res+=novels
     if not novels:break
