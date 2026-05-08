@@ -350,11 +350,33 @@ def fetch_uuread_chapter_count(url):
     _chapter_cache[url] = 0
     return 0
 
+
+def fetch_fanqi_chapter_count(url):
+  if url in _chapter_cache:return _chapter_cache[url]
+  try:
+    holder=[0]
+    def fn(html,mc):
+      import re as _r
+      m=_r.search(r'"chapterTotal"\s*:\s*(\d+)',html)
+      if m and int(m.group(1))>0:holder[0]=int(m.group(1))
+      if not holder[0]:
+        from bs4 import BeautifulSoup as BS
+        soup=BS(html,'html.parser')
+        for sel in ['.chapter-item','[class*=chapter] a','a[href*="/reader/"]']:
+          items=soup.select(sel)
+          if len(items)>5:holder[0]=len(items);break
+      return []
+    pw_scrape(url,fn,log=lambda*a:None)
+    _chapter_cache[url]=holder[0]
+    return holder[0]
+  except:
+    _chapter_cache[url]=0;return 0
+
 @app.route('/api/chapters', methods=['POST'])
 def api_chapters():
     urls = request.json.get('urls', [])
     def _fetch(url):
-        return {'url': url, 'chapters': fetch_uuread_chapter_count(url)}
+        return {'url':url,'chapters':fetch_fanqi_chapter_count(url) if 'fanqienovel' in url else fetch_uuread_chapter_count(url)}
     with _TPE(max_workers=10) as ex:
         results = list(ex.map(_fetch, urls))
     return jsonify(results)
